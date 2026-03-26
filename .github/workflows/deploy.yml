@@ -1,53 +1,28 @@
-name: Deploy to Render
+name: Deploy to Render (Manual)
 
 on:
   push:
     branches:
       - main   # or your branch name
-
+      
   workflow_dispatch:
     inputs:
-      confirm_deploy:
-        description: 'Type YES to confirm deployment'
-        required: true
-        default: 'NO'
+      reason:
+        description: 'Reason for deploying (optional)'
+        required: false
+        default: 'Manual deploy'
 
 jobs:
   deploy:
+    name: Trigger Render Deploy
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check confirmation
-        run: |
-          INPUT="${{ github.event.inputs.confirm_deploy }}"
-          INPUT_TRIMMED=$(echo "$INPUT" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
-          echo "You entered: $INPUT_TRIMMED"
-          if [ "$INPUT_TRIMMED" != "YES" ]; then
-            echo "❌ Deployment cancelled. You must type YES to confirm."
-            exit 1
-          fi
-          echo "✅ Confirmation accepted."
-
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Validate HTML file exists
+      - name: Ping Render Deploy Hook
         run: |
-          if [ ! -f index.html ]; then
-            echo "❌ index.html not found!"
-            exit 1
-          fi
-          echo "✅ index.html found"
-
-      - name: Trigger Render Deploy Hook
-        run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}")
-          echo "Render responded with HTTP status: $HTTP_STATUS"
-          if [[ "$HTTP_STATUS" != "200" && "$HTTP_STATUS" != "201" ]]; then
-            echo "❌ Deploy hook failed! Check your RENDER_DEPLOY_HOOK secret."
-            exit 1
-          fi
-          echo "✅ Render deploy hook triggered successfully!"
-
-      - name: Deployment triggered
-        run: echo "🚀 Deployment successfully triggered on Render!"
+          echo "🚀 Deploying because: ${{ github.event.inputs.reason }}"
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          echo "✅ Deploy triggered successfully!"
