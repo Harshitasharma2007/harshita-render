@@ -1,0 +1,39 @@
+name: Deploy to Render
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deploy:
+        description: 'Type YES to confirm deployment'
+        required: true
+        default: 'NO'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_deploy }}" != "YES" ]; then
+            echo "Deployment cancelled. You must type YES to confirm."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Validate HTML file exists
+        run: |
+          if [ ! -f index.html ]; then
+            echo "index.html not found!"
+            exit 1
+          fi
+          echo "index.html found"
+
+      - name: Trigger Render Deploy Hook
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+      - name: Deployment triggered
+        run: echo "Deployment successfully triggered on Render!"
